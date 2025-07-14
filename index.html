@@ -1,0 +1,1089 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Bitstream - Team Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+      color: #333;
+    }
+
+    .dashboard {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 24px;
+      padding: 30px;
+      margin-bottom: 20px;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+      text-align: center;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .logo {
+      font-size: 2.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .subtitle {
+      color: #64748b;
+      font-size: 1.1rem;
+      margin-bottom: 24px;
+      font-weight: 500;
+    }
+
+    .button-container {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .join-button {
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      padding: 16px 20px;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .join-button:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+    }
+
+    .join-button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    .join-button:hover::before {
+      left: 100%;
+    }
+
+    .loading {
+      display: none;
+      color: #64748b;
+      font-size: 0.9rem;
+      margin-top: 16px;
+    }
+
+    .loading.show {
+      display: block;
+    }
+
+    .data-source {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .data-source input {
+      width: 100%;
+      max-width: 600px;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.9);
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
+
+    .data-source button {
+      background: rgba(255, 255, 255, 0.2);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 10px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+      transition: all 0.3s ease;
+      margin: 0 5px;
+    }
+
+    .data-source button:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+
+    .data-source p {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.9rem;
+      margin-bottom: 10px;
+    }
+
+    .auto-refresh {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .auto-refresh input[type="checkbox"] {
+      width: auto;
+      margin: 0;
+    }
+
+    .auto-refresh label {
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.9rem;
+    }
+
+    .analytics-section {
+      margin-top: 20px;
+    }
+
+    .section-title {
+      color: white;
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 16px;
+      text-align: center;
+      text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .stat-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .stat-card h3 {
+      color: #334155;
+      font-size: 1.1rem;
+      margin-bottom: 16px;
+      font-weight: 600;
+    }
+
+    .stat-value {
+      font-size: 2rem;
+      font-weight: 700;
+      color: #667eea;
+      margin-bottom: 8px;
+    }
+
+    .stat-label {
+      color: #64748b;
+      font-size: 0.9rem;
+      margin-bottom: 12px;
+    }
+
+    .progress-bar {
+      background: #e2e8f0;
+      border-radius: 6px;
+      height: 8px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      border-radius: 6px;
+      transition: width 0.3s ease;
+    }
+
+    .team-overview {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+
+    .overview-card {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .chart-container {
+      margin-top: 16px;
+      height: 200px;
+      display: flex;
+      align-items: end;
+      justify-content: space-around;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 16px;
+    }
+
+    .chart-bar {
+      width: 60px;
+      background: linear-gradient(180deg, #667eea, #764ba2);
+      border-radius: 4px 4px 0 0;
+      margin: 0 8px;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .chart-bar:hover {
+      transform: scaleY(1.1);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+    }
+
+    .chart-label {
+      position: absolute;
+      bottom: -24px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.8rem;
+      color: #64748b;
+      font-weight: 500;
+    }
+
+    .chart-value {
+      position: absolute;
+      top: -24px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 0.8rem;
+      color: #334155;
+      font-weight: 600;
+    }
+
+    .recent-activity {
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(10px);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .activity-item {
+      display: flex;
+      align-items: center;
+      padding: 12px 0;
+      border-bottom: 1px solid #e2e8f0;
+    }
+
+    .activity-item:last-child {
+      border-bottom: none;
+    }
+
+    .activity-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      color: white;
+      margin-right: 12px;
+      font-size: 0.9rem;
+    }
+
+    .activity-icon.on-time {
+      background: #10b981;
+    }
+
+    .activity-icon.late {
+      background: #f59e0b;
+    }
+
+    .activity-icon.absent {
+      background: #ef4444;
+    }
+
+    .activity-details {
+      flex: 1;
+    }
+
+    .activity-name {
+      font-weight: 600;
+      color: #334155;
+      margin-bottom: 4px;
+    }
+
+    .activity-time {
+      color: #64748b;
+      font-size: 0.9rem;
+    }
+
+    .status-badge {
+      padding: 4px 8px;
+      border-radius: 16px;
+      font-size: 0.8rem;
+      font-weight: 500;
+    }
+
+    .status-badge.on-time {
+      background: #d1fae5;
+      color: #065f46;
+    }
+
+    .status-badge.late {
+      background: #fef3c7;
+      color: #92400e;
+    }
+
+    .status-badge.absent {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .no-data {
+      text-align: center;
+      color: #64748b;
+      font-style: italic;
+      padding: 40px;
+    }
+
+    .last-updated {
+      color: rgba(255, 255, 255, 0.8);
+      font-size: 0.8rem;
+      text-align: center;
+      margin-top: 10px;
+    }
+
+    .setup-instructions {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 20px;
+      color: rgba(255, 255, 255, 0.9);
+      font-size: 0.9rem;
+    }
+
+    .setup-instructions h4 {
+      color: white;
+      margin-bottom: 10px;
+    }
+
+    .setup-instructions ol {
+      margin-left: 20px;
+    }
+
+    .setup-instructions li {
+      margin-bottom: 5px;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      .button-container {
+        gap: 8px;
+      }
+      
+      .join-button {
+        padding: 14px 12px;
+        font-size: 0.9rem;
+      }
+      
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+      
+      .team-overview {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .header {
+        padding: 20px;
+      }
+      
+      .logo {
+        font-size: 2rem;
+      }
+      
+      .subtitle {
+        font-size: 1rem;
+      }
+      
+      .join-button {
+        padding: 12px 8px;
+        font-size: 0.85rem;
+      }
+      
+      .chart-container {
+        height: 150px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <div class="header">
+      <div class="logo">Bitstream</div>
+      <div class="subtitle">Team Dashboard & Meeting Access</div>
+      
+      <div class="button-container">
+        <button class="join-button" onclick="submitAttendance('Rafi')">
+          Join as Rafi
+        </button>
+        <button class="join-button" onclick="submitAttendance('Shakib')">
+          Join as Shakib
+        </button>
+        <button class="join-button" onclick="submitAttendance('Sabbir')">
+          Join as Sabbir
+        </button>
+      </div>
+
+      <div class="loading" id="loading">
+        Submitting attendance and joining meeting...
+      </div>
+    </div>
+
+    <div class="setup-instructions">
+      <h4>📋 How to Setup Google Sheets Integration:</h4>
+      <ol>
+        <li>Open your Google Sheets document</li>
+        <li>Click on <strong>File > Share > Publish to web</strong></li>
+        <li>Select <strong>Entire Document</strong> and <strong>CSV</strong> format</li>
+        <li>Click <strong>Publish</strong> and copy the generated link</li>
+        <li>Paste the link below and click "Load Data"</li>
+      </ol>
+    </div>
+
+    <div class="data-source">
+      <p>📊 Connect your Google Sheets for real-time analytics</p>
+      <input type="text" id="csvUrl" placeholder="Enter Google Sheets CSV publish URL" />
+      <div>
+        <button onclick="loadData()">Load Data</button>
+        <button onclick="testWithSampleData()">Test with Sample Data</button>
+      </div>
+      <div class="auto-refresh">
+        <input type="checkbox" id="autoRefresh" />
+        <label for="autoRefresh">Auto-refresh every 30 seconds</label>
+      </div>
+      <p style="font-size: 0.8rem; margin-top: 8px;">Meeting time: 8:00 PM | First login after 8 PM counts per day</p>
+      <div class="last-updated" id="lastUpdated"></div>
+    </div>
+
+    <div class="analytics-section">
+      <div class="section-title">Team Analytics</div>
+      
+      <div class="stats-grid">
+        <div class="stat-card">
+          <h3>📊 Overall Attendance</h3>
+          <div class="stat-value" id="overallAttendance">--</div>
+          <div class="stat-label">This Month</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="attendanceProgress" style="width: 0%"></div>
+          </div>
+          <div style="font-size: 0.8rem; color: #64748b;" id="attendanceDetail">Load data to see details</div>
+        </div>
+
+        <div class="stat-card">
+          <h3>⏰ Average Late Time</h3>
+          <div class="stat-value" id="averageLate">--</div>
+          <div class="stat-label">Per Person</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="lateProgress" style="width: 0%"></div>
+          </div>
+          <div style="font-size: 0.8rem; color: #64748b;" id="lateDetail">Load data to see details</div>
+        </div>
+
+        <div class="stat-card">
+          <h3>🎯 Best Performer</h3>
+          <div class="stat-value" id="bestPerformer">--</div>
+          <div class="stat-label" id="bestPerformerRate">Load data to see details</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="bestProgress" style="width: 0%"></div>
+          </div>
+          <div style="font-size: 0.8rem; color: #64748b;" id="bestDetail">Load data to see details</div>
+        </div>
+
+        <div class="stat-card">
+          <h3>📈 This Week</h3>
+          <div class="stat-value" id="weeklyAttendance">--</div>
+          <div class="stat-label">Attendance Rate</div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="weeklyProgress" style="width: 0%"></div>
+          </div>
+          <div style="font-size: 0.8rem; color: #64748b;" id="weeklyDetail">Load data to see details</div>
+        </div>
+      </div>
+
+      <div class="team-overview">
+        <div class="overview-card">
+          <h3>📅 Daily Attendance Trend</h3>
+          <div class="chart-container" id="dailyChart">
+            <div class="no-data">Load data to see daily trends</div>
+          </div>
+        </div>
+
+        <div class="overview-card">
+          <h3>👥 Individual Performance</h3>
+          <div class="chart-container" id="individualChart">
+            <div class="no-data">Load data to see individual performance</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="recent-activity">
+        <h3 style="margin-bottom: 20px; color: #334155;">🕐 Recent Activity</h3>
+        <div id="recentActivity">
+          <div class="no-data">Load data to see recent activity</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSfyGhJGumcv6m02hubVnGNmUz_eRnmKq8EdhhkySI8AgTSm-A/formResponse";
+    const entryId = "entry.1187304268";
+    const meetUrl = "https://meet.google.com/zkg-ykkf-yjb";
+    const MEETING_TIME = 20; // 8 PM in 24-hour format
+    const FIXED_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRErjwUACu3CWEF9AI07E9ViG5pQZ6a9x3GW2_TKevccI1GO9u0j9970pV0qIHwnhMDUApJRt6GpGaI/pub?output=csv";
+
+    let attendanceData = [];
+    let refreshInterval;
+
+    function submitAttendance(name) {
+      const button = event.target;
+      const loading = document.getElementById('loading');
+      
+      button.classList.add('pressed');
+      
+      const buttons = document.querySelectorAll('.join-button');
+      buttons.forEach(btn => {
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+        btn.style.cursor = 'not-allowed';
+      });
+      
+      loading.classList.add('show');
+      
+      const data = new FormData();
+      data.append(entryId, name);
+
+      fetch(formUrl, {
+        method: "POST",
+        mode: "no-cors",
+        body: data
+      }).then(() => {
+        setTimeout(() => {
+          window.location.href = meetUrl;
+        }, 500);
+      }).catch(() => {
+        setTimeout(() => {
+          window.location.href = meetUrl;
+        }, 500);
+      });
+    }
+
+    function loadData() {
+      fetchDataFromSheet(FIXED_SHEET_URL);
+      setupAutoRefresh();
+    }
+
+    function fetchDataFromSheet(url) {
+      // Show loading state
+      updateLoadingState(true);
+      
+      fetch(url)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.text();
+        })
+        .then(csvText => {
+          parseCSVData(csvText);
+          updateDashboard();
+          updateLastUpdated();
+          updateLoadingState(false);
+        })
+        .catch(error => {
+          console.error('Error loading data:', error);
+          updateLoadingState(false);
+          alert('Error loading data. Please check your internet connection and try again.');
+        });
+    }
+
+    function testWithSampleData() {
+      // Generate sample data for testing
+      const sampleData = generateSampleData();
+      const csvText = convertToCSV(sampleData);
+      parseCSVData(csvText);
+      updateDashboard();
+      updateLastUpdated('Sample Data');
+    }
+
+    function generateSampleData() {
+      const names = ['Rafi', 'Shakib', 'Sabbir'];
+      const data = [];
+      const now = new Date();
+      
+      // Generate data for the last 30 days
+      for (let i = 0; i < 30; i++) {
+        const date = new Date(now);
+        date.setDate(now.getDate() - i);
+        
+        // Skip weekends
+        if (date.getDay() === 0 || date.getDay() === 6) continue;
+        
+        names.forEach(name => {
+          // 80% chance of attendance
+          if (Math.random() < 0.8) {
+            const meetingTime = new Date(date);
+            meetingTime.setHours(20, 0, 0, 0);
+            
+            // Add some randomness to arrival time (0-30 minutes late)
+            const lateMinutes = Math.floor(Math.random() * 30);
+            meetingTime.setMinutes(meetingTime.getMinutes() + lateMinutes);
+            
+            data.push({
+              timestamp: meetingTime.toISOString(),
+              name: name
+            });
+          }
+        });
+      }
+      
+      return data;
+    }
+
+    function convertToCSV(data) {
+      const header = 'Timestamp,Name\n';
+      const rows = data.map(row => `${row.timestamp},${row.name}`).join('\n');
+      return header + rows;
+    }
+
+    function updateLoadingState(loading) {
+      const elements = [
+        'overallAttendance', 'averageLate', 'bestPerformer', 'weeklyAttendance'
+      ];
+      
+      elements.forEach(id => {
+        document.getElementById(id).textContent = loading ? 'Loading...' : '--';
+      });
+    }
+
+    function updateLastUpdated(source = 'Google Sheets') {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString();
+      document.getElementById('lastUpdated').textContent = 
+        `Last updated: ${timeString} from ${source}`;
+    }
+
+    function setupAutoRefresh() {
+      const autoRefresh = document.getElementById('autoRefresh');
+      
+      // Clear existing interval
+      if (refreshInterval) {
+        clearInterval(refreshInterval);
+      }
+      
+      if (autoRefresh.checked) {
+        refreshInterval = setInterval(() => {
+          fetchDataFromSheet(FIXED_SHEET_URL);
+        }, 30000); // 30 seconds
+      }
+    }
+
+    // Setup auto-refresh toggle
+    document.getElementById('autoRefresh').addEventListener('change', setupAutoRefresh);
+
+    function parseCSVData(csvText) {
+      const lines = csvText.split('\n');
+      const data = [];
+      
+      // Skip header row
+      for (let i = 1; i < lines.length; i++) {
+        const line = lines[i].trim();
+        if (!line) continue;
+        
+        // Handle both comma and tab separators
+        const parts = line.includes('\t') ? line.split('\t') : line.split(',');
+        
+        if (parts.length >= 2) {
+          const timestamp = parts[0].trim();
+          const name = parts[1].trim();
+          
+          try {
+            const date = new Date(timestamp);
+            if (!isNaN(date.getTime())) {
+              data.push({
+                timestamp: date,
+                name: name,
+                dateString: date.toDateString()
+              });
+            }
+          } catch (e) {
+            console.error('Error parsing date:', timestamp);
+          }
+        }
+      }
+      
+      // Filter to only first entry per person per day after 8 PM
+      attendanceData = filterFirstDailyEntries(data);
+      console.log('Processed attendance data:', attendanceData.length, 'entries');
+    }
+
+    function filterFirstDailyEntries(data) {
+      const dailyEntries = {};
+      
+      data.forEach(entry => {
+        const dateKey = `${entry.dateString}-${entry.name}`;
+        const hour = entry.timestamp.getHours();
+        
+        // Only consider entries after 8 PM
+        if (hour >= MEETING_TIME) {
+          if (!dailyEntries[dateKey] || entry.timestamp < dailyEntries[dateKey].timestamp) {
+            dailyEntries[dateKey] = entry;
+          }
+        }
+      });
+      
+      return Object.values(dailyEntries);
+    }
+
+    function calculateLateness(timestamp) {
+      const meetingTime = new Date(timestamp);
+      meetingTime.setHours(MEETING_TIME, 0, 0, 0);
+      
+      const diffMs = timestamp - meetingTime;
+      return Math.max(0, Math.floor(diffMs / 60000)); // Minutes late
+    }
+
+    function updateDashboard() {
+      if (attendanceData.length === 0) {
+        document.getElementById('overallAttendance').textContent = 'No Data';
+        document.getElementById('averageLate').textContent = 'No Data';
+        document.getElementById('bestPerformer').textContent = 'No Data';
+        document.getElementById('weeklyAttendance').textContent = 'No Data';
+        return;
+      }
+
+      const now = new Date();
+      const thisMonth = attendanceData.filter(entry => 
+        entry.timestamp.getMonth() === now.getMonth() && 
+        entry.timestamp.getFullYear() === now.getFullYear()
+      );
+
+      const thisWeek = attendanceData.filter(entry => {
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - now.getDay());
+        return entry.timestamp >= weekStart;
+      });
+
+      // Calculate statistics
+      const stats = calculateStats(thisMonth, thisWeek);
+      
+      // Update UI
+      updateStatsCards(stats);
+      updateCharts(stats);
+      updateRecentActivity();
+    }
+
+    function calculateStats(monthData, weekData) {
+      const names = ['Rafi', 'Shakib', 'Sabbir'];
+      
+      // Calculate monthly stats
+      const monthlyStats = {};
+      monthData.forEach(entry => {
+        const lateness = calculateLateness(entry.timestamp);
+        if (!monthlyStats[entry.name]) {
+          monthlyStats[entry.name] = { total: 0, onTime: 0, totalLateness: 0 };
+        }
+        monthlyStats[entry.name].total++;
+        monthlyStats[entry.name].totalLateness += lateness;
+        if (lateness === 0) monthlyStats[entry.name].onTime++;
+      });
+      
+      // Calculate weekly stats
+      const weeklyStats = {};
+      weekData.forEach(entry => {
+        const lateness = calculateLateness(entry.timestamp);
+        if (!weeklyStats[entry.name]) {
+          weeklyStats[entry.name] = { total: 0, onTime: 0, totalLateness: 0 };
+        }
+        weeklyStats[entry.name].total++;
+        weeklyStats[entry.name].totalLateness += lateness;
+        if (lateness === 0) weeklyStats[entry.name].onTime++;
+      });
+
+      // Overall attendance
+      const totalPossibleDays = getWorkingDaysThisMonth();
+      const totalAttendance = Object.values(monthlyStats).reduce((sum, s) => sum + s.total, 0);
+      const overallAttendance = totalPossibleDays > 0 ? Math.round((totalAttendance / (totalPossibleDays * names.length)) * 100) : 0;
+
+      // Average lateness
+      const totalEntries = Object.values(monthlyStats).reduce((sum, s) => sum + s.total, 0);
+      const totalLateness = Object.values(monthlyStats).reduce((sum, s) => sum + s.totalLateness, 0);
+      const avgLateness = totalEntries > 0 ? Math.round(totalLateness / totalEntries) : 0;
+
+      // Best performer
+      let bestPerformer = null;
+      let bestRate = 0;
+      names.forEach(name => {
+        const stat = monthlyStats[name];
+        if (stat && stat.total > 0) {
+          const rate = Math.round((stat.onTime / stat.total) * 100);
+          if (rate > bestRate) {
+            bestRate = rate;
+            bestPerformer = name;
+          }
+        }
+      });
+
+      // Weekly attendance
+      const weeklyTotal = Object.values(weeklyStats).reduce((sum, s) => sum + s.total, 0);
+      const weeklyPossible = getWorkingDaysThisWeek() * names.length;
+      const weeklyAttendanceRate = weeklyPossible > 0 ? Math.round((weeklyTotal / weeklyPossible) * 100) : 0;
+
+      return {
+        overallAttendance,
+        avgLateness,
+        bestPerformer,
+        bestRate,
+        weeklyAttendanceRate,
+        monthlyStats,
+        weeklyStats,
+        totalPossibleDays,
+        weeklyPossible
+      };
+    }
+
+    function getWorkingDaysThisMonth() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = now.getMonth();
+      const today = now.getDate();
+      
+      let workingDays = 0;
+      for (let day = 1; day <= today; day++) {
+        const date = new Date(year, month, day);
+        const dayOfWeek = date.getDay();
+        if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Not Sunday or Saturday
+          workingDays++;
+        }
+      }
+      return workingDays;
+    }
+
+    function getWorkingDaysThisWeek() {
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay());
+      
+      let workingDays = 0;
+      for (let i = 0; i < 7; i++) {
+        const date = new Date(startOfWeek);
+        date.setDate(startOfWeek.getDate() + i);
+        const dayOfWeek = date.getDay();
+        if (dayOfWeek !== 0 && dayOfWeek !== 6 && date <= now) {
+          workingDays++;
+        }
+      }
+      return workingDays;
+    }
+
+    function updateStatsCards(stats) {
+      // Overall Attendance
+      document.getElementById('overallAttendance').textContent = stats.overallAttendance + '%';
+      document.getElementById('attendanceProgress').style.width = stats.overallAttendance + '%';
+      document.getElementById('attendanceDetail').textContent = 
+        `${Object.values(stats.monthlyStats).reduce((sum, s) => sum + s.total, 0)} / ${stats.totalPossibleDays * 3} possible attendances`;
+
+      // Average Late Time
+      document.getElementById('averageLate').textContent = stats.avgLateness + ' min';
+      const latePercentage = Math.min(100, (stats.avgLateness / 30) * 100);
+      document.getElementById('lateProgress').style.width = latePercentage + '%';
+      document.getElementById('lateDetail').textContent = 
+        `Target: 0 minutes late`;
+
+      // Best Performer
+      document.getElementById('bestPerformer').textContent = stats.bestPerformer || 'N/A';
+      document.getElementById('bestPerformerRate').textContent = stats.bestPerformer ? `${stats.bestRate}% on-time` : 'No data';
+      document.getElementById('bestProgress').style.width = stats.bestRate + '%';
+      document.getElementById('bestDetail').textContent = 
+        stats.bestPerformer ? `${stats.monthlyStats[stats.bestPerformer]?.onTime || 0} on-time arrivals` : 'Load data to see details';
+
+      // Weekly Attendance
+      document.getElementById('weeklyAttendance').textContent = stats.weeklyAttendanceRate + '%';
+      document.getElementById('weeklyProgress').style.width = stats.weeklyAttendanceRate + '%';
+      document.getElementById('weeklyDetail').textContent = 
+        `${Object.values(stats.weeklyStats).reduce((sum, s) => sum + s.total, 0)} / ${stats.weeklyPossible} this week`;
+    }
+
+    function updateCharts(stats) {
+      updateDailyChart();
+      updateIndividualChart(stats);
+    }
+
+    function updateDailyChart() {
+      const dailyData = {};
+      const now = new Date();
+      
+      // Get last 7 days
+      for (let i = 6; i >= 0; i--) {
+        const date = new Date(now);
+        date.setDate(now.getDate() - i);
+        const dayKey = date.toDateString();
+        dailyData[dayKey] = 0;
+      }
+
+      // Count attendance for each day
+      attendanceData.forEach(entry => {
+        const dayKey = entry.dateString;
+        if (dailyData.hasOwnProperty(dayKey)) {
+          dailyData[dayKey]++;
+        }
+      });
+
+      const chartContainer = document.getElementById('dailyChart');
+      chartContainer.innerHTML = '';
+
+      Object.entries(dailyData).forEach(([day, count]) => {
+        const dayName = new Date(day).toLocaleDateString('en-US', { weekday: 'short' });
+        const height = Math.max(20, (count / 3) * 160);
+        
+        const bar = document.createElement('div');
+        bar.className = 'chart-bar';
+        bar.style.height = height + 'px';
+        
+        const label = document.createElement('div');
+        label.className = 'chart-label';
+        label.textContent = dayName;
+        
+        const value = document.createElement('div');
+        value.className = 'chart-value';
+        value.textContent = count;
+        
+        bar.appendChild(label);
+        bar.appendChild(value);
+        chartContainer.appendChild(bar);
+      });
+    }
+
+    function updateIndividualChart(stats) {
+      const names = ['Rafi', 'Shakib', 'Sabbir'];
+      const chartContainer = document.getElementById('individualChart');
+      chartContainer.innerHTML = '';
+
+      names.forEach(name => {
+        const stat = stats.monthlyStats[name] || { total: 0, onTime: 0 };
+        const onTimeRate = stat.total > 0 ? Math.round((stat.onTime / stat.total) * 100) : 0;
+        const height = Math.max(20, (onTimeRate / 100) * 160);
+        
+        const bar = document.createElement('div');
+        bar.className = 'chart-bar';
+        bar.style.height = height + 'px';
+        
+        const label = document.createElement('div');
+        label.className = 'chart-label';
+        label.textContent = name;
+        
+        const value = document.createElement('div');
+        value.className = 'chart-value';
+        value.textContent = onTimeRate + '%';
+        
+        bar.appendChild(label);
+        bar.appendChild(value);
+        chartContainer.appendChild(bar);
+      });
+    }
+
+    function updateRecentActivity() {
+      const recentContainer = document.getElementById('recentActivity');
+      recentContainer.innerHTML = '';
+
+      if (attendanceData.length === 0) {
+        recentContainer.innerHTML = '<div class="no-data">Load data to see recent activity</div>';
+        return;
+      }
+
+      // Sort by timestamp descending and take last 10
+      const recentEntries = attendanceData
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, 10);
+
+      recentEntries.forEach(entry => {
+        const lateness = calculateLateness(entry.timestamp);
+        const timeString = entry.timestamp.toLocaleTimeString();
+        const dateString = entry.timestamp.toLocaleDateString();
+        
+        let status = 'on-time';
+        let statusText = 'On Time';
+        
+        if (lateness > 0) {
+          status = 'late';
+          statusText = `${lateness} min late`;
+        }
+
+        const activityItem = document.createElement('div');
+        activityItem.className = 'activity-item';
+        
+        activityItem.innerHTML = `
+          <div class="activity-icon ${status}">
+            ${entry.name.charAt(0).toUpperCase()}
+          </div>
+          <div class="activity-details">
+            <div class="activity-name">${entry.name}</div>
+            <div class="activity-time">${dateString} at ${timeString}</div>
+          </div>
+          <div class="status-badge ${status}">
+            ${statusText}
+          </div>
+        `;
+        
+        recentContainer.appendChild(activityItem);
+      });
+    }
+
+    // Initialize dashboard on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      // Load data automatically when page loads
+      loadData();
+      
+      // Update dashboard initially
+      updateDashboard();
+    });
+    </script>
+</body>
+</html>
