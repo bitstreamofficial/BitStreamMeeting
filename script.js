@@ -1,7 +1,6 @@
 const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSfyGhJGumcv6m02hubVnGNmUz_eRnmKq8EdhhkySI8AgTSm-A/formResponse";
 const entryId = "entry.1187304268";
 const meetUrl = "https://meet.google.com/zkg-ykkf-yjb";
-const MEETING_TIME = 1; // 8 PM in 24-hour format
 const FIXED_SHEET_URL = "https://script.google.com/macros/s/AKfycbxxbsUEPq45T9opJUr8MPoSRlMeOr2Mf1xWyuguVfdsvzjcoynx2fwyf0j90s1avCzoJg/exec";
 
 // Set this to your timezone offset from UTC (e.g., +6 for Bangladesh)
@@ -130,7 +129,7 @@ function parseJSONData(jsonData) {
   console.log('\n=== PARSING COMPLETE ===');
   console.log('Total parsed entries:', data.length);
   
-  // Filter to only first entry per person per day after 8 PM
+  // Show all entries without time filtering
   attendanceData = filterFirstDailyEntries(data);
   console.log('Final processed attendance data:', attendanceData.length, 'entries');
 }
@@ -166,7 +165,7 @@ function parseCSVData(csvText) {
     }
   }
   
-  // Filter to only first entry per person per day after 8 PM
+  // Show all entries without time filtering
   attendanceData = filterFirstDailyEntries(data);
   console.log('Processed attendance data:', attendanceData.length, 'entries');
 }
@@ -191,38 +190,25 @@ function normalizeNameForComparison(name) {
 function filterFirstDailyEntries(data) {
   console.log('=== FILTERING DEBUG ===');
   console.log('Total entries to process:', data.length);
-  console.log('Meeting time threshold:', MEETING_TIME);
-  console.log('Timezone offset:', TIMEZONE_OFFSET_HOURS);
+  console.log('Showing ALL entries regardless of time');
   
   const dailyEntries = {};
   
   data.forEach((entry, index) => {
     console.log(`\n--- Entry ${index + 1} ---`);
     console.log('Name:', entry.name);
-    console.log('Original UTC timestamp:', entry.timestamp.toISOString());
-    
-    // Convert UTC to local time by adding timezone offset
-    const localTime = new Date(entry.timestamp.getTime() + (TIMEZONE_OFFSET_HOURS * 60 * 60 * 1000));
-    const hour = localTime.getHours();
-    
-    console.log('Local time:', localTime.toLocaleString());
-    console.log('Hour:', hour);
-    console.log('Is after', MEETING_TIME + ':00?', hour >= MEETING_TIME);
+    console.log('Timestamp:', entry.timestamp.toISOString());
     
     const dateKey = `${entry.dateString}-${entry.name}`;
     console.log('Date key:', dateKey);
     
-    // Only consider entries after 8 PM local time
-    if (hour >= MEETING_TIME) {
-      console.log('✓ Entry accepted');
-      if (!dailyEntries[dateKey] || entry.timestamp < dailyEntries[dateKey].timestamp) {
-        dailyEntries[dateKey] = entry;
-        console.log('✓ Entry stored as first/earliest for this person-date');
-      } else {
-        console.log('✗ Entry rejected (later entry for same person-date exists)');
-      }
+    // Accept all entries regardless of time
+    console.log('✓ Entry accepted (no time validation)');
+    if (!dailyEntries[dateKey] || entry.timestamp < dailyEntries[dateKey].timestamp) {
+      dailyEntries[dateKey] = entry;
+      console.log('✓ Entry stored as first/earliest for this person-date');
     } else {
-      console.log('✗ Entry rejected (before meeting time)');
+      console.log('✗ Entry rejected (later entry for same person-date exists)');
     }
   });
   
@@ -234,17 +220,9 @@ function filterFirstDailyEntries(data) {
 }
 
 function calculateLateness(timestamp) {
-  // Convert to local time for meeting time calculation
-  const localTime = new Date(timestamp.getTime() + (TIMEZONE_OFFSET_HOURS * 60 * 60 * 1000));
-  const meetingTime = new Date(localTime);
-  meetingTime.setHours(MEETING_TIME, 0, 0, 0);
-  
-  const diffMs = localTime - meetingTime;
-  
-  // DEBUG: Log lateness calculation
-  console.log(`Meeting time: ${meetingTime.toLocaleString()}, Actual local time: ${localTime.toLocaleString()}, Diff: ${diffMs}ms`);
-  
-  return Math.max(0, Math.floor(diffMs / 60000)); // Minutes late
+  // Since we're not validating time, just return 0 for lateness
+  // or you can remove lateness calculation entirely
+  return 0;
 }
 
 function updateDashboard() {
@@ -343,8 +321,8 @@ function updateIndividualStats(stats) {
     // Calculate attendance percentage
     const attendanceRate = stats.totalPossibleDays > 0 ? Math.round((stat.total / stats.totalPossibleDays) * 100) : 0;
     
-    // Calculate average lateness
-    const avgLateness = stat.total > 0 ? Math.round(stat.totalLateness / stat.total) : 0;
+    // Since we're not validating time, lateness is always 0
+    const avgLateness = 0;
     
     const personDiv = document.createElement('div');
     personDiv.className = 'person-stat';
