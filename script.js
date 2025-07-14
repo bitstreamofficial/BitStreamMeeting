@@ -86,22 +86,40 @@ function updateLastUpdated() {
 }
 
 function parseJSONData(jsonData) {
+  console.log('=== PARSING JSON DATA ===');
+  console.log('Raw JSON data:', jsonData);
+  
   const data = [];
   
-  jsonData.forEach(entry => {
+  jsonData.forEach((entry, index) => {
+    console.log(`\n--- Processing entry ${index + 1} ---`);
+    console.log('Raw entry:', entry);
+    
     try {
       // Handle both uppercase and lowercase property names
       const timestamp = entry.Timestamp || entry.timestamp;
       const name = entry.Name || entry.name;
       
+      console.log('Extracted timestamp:', timestamp);
+      console.log('Extracted name:', name);
+      
       if (timestamp && name) {
         const date = new Date(timestamp);
+        console.log('Parsed date:', date);
+        console.log('Is valid date?', !isNaN(date.getTime()));
+        
         if (!isNaN(date.getTime())) {
-          data.push({
+          const normalizedName = normalizeNameForComparison(name);
+          console.log('Normalized name:', normalizedName);
+          
+          const processedEntry = {
             timestamp: date,
-            name: normalizeNameForComparison(name),
+            name: normalizedName,
             dateString: date.toDateString()
-          });
+          };
+          
+          console.log('Processed entry:', processedEntry);
+          data.push(processedEntry);
         }
       }
     } catch (e) {
@@ -109,9 +127,12 @@ function parseJSONData(jsonData) {
     }
   });
   
+  console.log('\n=== PARSING COMPLETE ===');
+  console.log('Total parsed entries:', data.length);
+  
   // Filter to only first entry per person per day after 8 PM
   attendanceData = filterFirstDailyEntries(data);
-  console.log('Processed attendance data:', attendanceData.length, 'entries');
+  console.log('Final processed attendance data:', attendanceData.length, 'entries');
 }
 
 function parseCSVData(csvText) {
@@ -168,27 +189,47 @@ function normalizeNameForComparison(name) {
 }
 
 function filterFirstDailyEntries(data) {
+  console.log('=== FILTERING DEBUG ===');
+  console.log('Total entries to process:', data.length);
+  console.log('Meeting time threshold:', MEETING_TIME);
+  console.log('Timezone offset:', TIMEZONE_OFFSET_HOURS);
+  
   const dailyEntries = {};
   
-  data.forEach(entry => {
-    const dateKey = `${entry.dateString}-${entry.name}`;
+  data.forEach((entry, index) => {
+    console.log(`\n--- Entry ${index + 1} ---`);
+    console.log('Name:', entry.name);
+    console.log('Original UTC timestamp:', entry.timestamp.toISOString());
     
     // Convert UTC to local time by adding timezone offset
     const localTime = new Date(entry.timestamp.getTime() + (TIMEZONE_OFFSET_HOURS * 60 * 60 * 1000));
     const hour = localTime.getHours();
     
-    // DEBUG: Log the hour for debugging
-    console.log(`Entry: ${entry.name}, UTC: ${entry.timestamp.toISOString()}, Local: ${localTime.toLocaleString()}, Hour: ${hour}`);
+    console.log('Local time:', localTime.toLocaleString());
+    console.log('Hour:', hour);
+    console.log('Is after', MEETING_TIME + ':00?', hour >= MEETING_TIME);
+    
+    const dateKey = `${entry.dateString}-${entry.name}`;
+    console.log('Date key:', dateKey);
     
     // Only consider entries after 8 PM local time
     if (hour >= MEETING_TIME) {
+      console.log('✓ Entry accepted');
       if (!dailyEntries[dateKey] || entry.timestamp < dailyEntries[dateKey].timestamp) {
         dailyEntries[dateKey] = entry;
+        console.log('✓ Entry stored as first/earliest for this person-date');
+      } else {
+        console.log('✗ Entry rejected (later entry for same person-date exists)');
       }
+    } else {
+      console.log('✗ Entry rejected (before meeting time)');
     }
   });
   
+  console.log('\n=== FINAL RESULTS ===');
   console.log('Daily entries found:', Object.keys(dailyEntries).length);
+  console.log('Final entries:', Object.values(dailyEntries));
+  
   return Object.values(dailyEntries);
 }
 
