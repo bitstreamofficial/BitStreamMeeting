@@ -1,10 +1,8 @@
 const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSfyGhJGumcv6m02hubVnGNmUz_eRnmKq8EdhhkySI8AgTSm-A/formResponse";
 const entryId = "entry.1187304268";
 const meetUrl = "https://meet.google.com/zkg-ykkf-yjb";
-const FIXED_SHEET_URL = "https://script.google.com/macros/s/AKfycbyzq8eJx_BMuvtyDgqYZgFTIId8bQx-Uy_xs3q8VsxTOmb_uUorJTOAWH573taBn6ZtPg/exec";
-
-// Set this to your timezone offset from UTC (e.g., +6 for Bangladesh)
-const TIMEZONE_OFFSET_HOURS = 6; // Adjust this for your timezone
+const MEETING_TIME = 20; // 8 PM in 24-hour format
+const FIXED_SHEET_URL = "https://script.google.com/macros/s/AKfycbxxbsUEPq45T9opJUr8MPoSRlMeOr2Mf1xWyuguVfdsvzjcoynx2fwyf0j90s1avCzoJg/exec";
 
 let attendanceData = [];
 
@@ -54,15 +52,8 @@ function fetchDataFromSheet(url) {
       }
       return response.text();
     })
-    .then(responseText => {
-      // Try to parse as JSON first, then fall back to CSV
-      try {
-        const jsonData = JSON.parse(responseText);
-        parseJSONData(jsonData);
-      } catch (e) {
-        // If JSON parsing fails, try CSV parsing
-        parseCSVData(responseText);
-      }
+    .then(csvText => {
+      parseCSVData(csvText);
       updateDashboard();
       updateLastUpdated();
       updateLoadingState(false);
@@ -82,56 +73,6 @@ function updateLastUpdated() {
   const timeString = now.toLocaleTimeString();
   document.getElementById('lastUpdated').textContent = 
     `Last updated: ${timeString}`;
-}
-
-function parseJSONData(jsonData) {
-  console.log('=== PARSING JSON DATA ===');
-  console.log('Raw JSON data:', jsonData);
-  
-  const data = [];
-  
-  jsonData.forEach((entry, index) => {
-    console.log(`\n--- Processing entry ${index + 1} ---`);
-    console.log('Raw entry:', entry);
-    
-    try {
-      // Handle both uppercase and lowercase property names
-      const timestamp = entry.Timestamp || entry.timestamp;
-      const name = entry.Name || entry.name;
-      
-      console.log('Extracted timestamp:', timestamp);
-      console.log('Extracted name:', name);
-      
-      if (timestamp && name) {
-        const date = new Date(timestamp);
-        console.log('Parsed date:', date);
-        console.log('Is valid date?', !isNaN(date.getTime()));
-        
-        if (!isNaN(date.getTime())) {
-          const normalizedName = normalizeNameForComparison(name);
-          console.log('Normalized name:', normalizedName);
-          
-          const processedEntry = {
-            timestamp: date,
-            name: normalizedName,
-            dateString: date.toDateString()
-          };
-          
-          console.log('Processed entry:', processedEntry);
-          data.push(processedEntry);
-        }
-      }
-    } catch (e) {
-      console.error('Error parsing JSON entry:', entry, e);
-    }
-  });
-  
-  console.log('\n=== PARSING COMPLETE ===');
-  console.log('Total parsed entries:', data.length);
-  
-  // Show all entries without time filtering
-  attendanceData = filterFirstDailyEntries(data);
-  console.log('Final processed attendance data:', attendanceData.length, 'entries');
 }
 
 function parseCSVData(csvText) {
@@ -155,7 +96,7 @@ function parseCSVData(csvText) {
         if (!isNaN(date.getTime())) {
           data.push({
             timestamp: date,
-            name: normalizeNameForComparison(name),
+            name: name,
             dateString: date.toDateString()
           });
         }
@@ -165,64 +106,35 @@ function parseCSVData(csvText) {
     }
   }
   
-  // Show all entries without time filtering
+  // Filter to only first entry per person per day after 8 PM
   attendanceData = filterFirstDailyEntries(data);
   console.log('Processed attendance data:', attendanceData.length, 'entries');
 }
 
-function normalizeNameForComparison(name) {
-  // Convert to lowercase and trim for comparison
-  const normalized = name.toLowerCase().trim();
-  
-  // Map variations to standard names
-  const nameMap = {
-    'rafi': 'Rafi',
-    'rafii': 'Rafi',
-    'shakib': 'Shakib',
-    'sabbir': 'Sabbir',
-    'aisha': 'Aisha',
-    'imran': 'Imran'
-  };
-  
-  return nameMap[normalized] || name; // Return mapped name or original if not found
-}
-
 function filterFirstDailyEntries(data) {
-  console.log('=== FILTERING DEBUG ===');
-  console.log('Total entries to process:', data.length);
-  console.log('Showing ALL entries regardless of time');
-  
   const dailyEntries = {};
   
-  data.forEach((entry, index) => {
-    console.log(`\n--- Entry ${index + 1} ---`);
-    console.log('Name:', entry.name);
-    console.log('Timestamp:', entry.timestamp.toISOString());
-    
+  data.forEach(entry => {
     const dateKey = `${entry.dateString}-${entry.name}`;
-    console.log('Date key:', dateKey);
+    const hour = entry.timestamp.getHours();
     
-    // Accept all entries regardless of time
-    console.log('✓ Entry accepted (no time validation)');
-    if (!dailyEntries[dateKey] || entry.timestamp < dailyEntries[dateKey].timestamp) {
-      dailyEntries[dateKey] = entry;
-      console.log('✓ Entry stored as first/earliest for this person-date');
-    } else {
-      console.log('✗ Entry rejected (later entry for same person-date exists)');
+    // Only consider entries after 8 PM
+    if (hour >= MEETING_TIME) {
+      if (!dailyEntries[dateKey] || entry.timestamp < dailyEntries[dateKey].timestamp) {
+        dailyEntries[dateKey] = entry;
+      }
     }
   });
-  
-  console.log('\n=== FINAL RESULTS ===');
-  console.log('Daily entries found:', Object.keys(dailyEntries).length);
-  console.log('Final entries:', Object.values(dailyEntries));
   
   return Object.values(dailyEntries);
 }
 
 function calculateLateness(timestamp) {
-  // Since we're not validating time, just return 0 for lateness
-  // or you can remove lateness calculation entirely
-  return 0;
+  const meetingTime = new Date(timestamp);
+  meetingTime.setHours(MEETING_TIME, 0, 0, 0);
+  
+  const diffMs = timestamp - meetingTime;
+  return Math.max(0, Math.floor(diffMs / 60000)); // Minutes late
 }
 
 function updateDashboard() {
@@ -247,8 +159,7 @@ function updateDashboard() {
 }
 
 function calculateStats(monthData) {
-  // Get all unique names from the data instead of hardcoding
-  const allNames = [...new Set(attendanceData.map(entry => entry.name))];
+  const names = ['Rafi', 'Shakib', 'Sabbir'];
   
   // Calculate monthly stats
   const monthlyStats = {};
@@ -265,13 +176,13 @@ function calculateStats(monthData) {
   // Overall attendance
   const totalPossibleDays = getWorkingDaysThisMonth();
   const totalAttendance = Object.values(monthlyStats).reduce((sum, s) => sum + s.total, 0);
-  const overallAttendance = totalPossibleDays > 0 ? Math.round((totalAttendance / (totalPossibleDays * allNames.length)) * 100) : 0;
+  const overallAttendance = totalPossibleDays > 0 ? Math.round((totalAttendance / (totalPossibleDays * names.length)) * 100) : 0;
 
   return {
     overallAttendance,
     monthlyStats,
     totalPossibleDays,
-    names: allNames
+    names
   };
 }
 
@@ -295,24 +206,13 @@ function getWorkingDaysThisMonth() {
 function updateStatsCards(stats) {
   // Overall Attendance
   document.getElementById('overallAttendance').textContent = stats.overallAttendance + '%';
-  
-  // Check if progress bar element exists before updating
-  const progressBar = document.getElementById('attendanceProgress');
-  if (progressBar) {
-    progressBar.style.width = stats.overallAttendance + '%';
-  }
-  
-  const attendanceDetail = document.getElementById('attendanceDetail');
-  if (attendanceDetail) {
-    attendanceDetail.textContent = 
-      `${Object.values(stats.monthlyStats).reduce((sum, s) => sum + s.total, 0)} / ${stats.totalPossibleDays * stats.names.length} possible attendances`;
-  }
+  document.getElementById('attendanceProgress').style.width = stats.overallAttendance + '%';
+  document.getElementById('attendanceDetail').textContent = 
+    `${Object.values(stats.monthlyStats).reduce((sum, s) => sum + s.total, 0)} / ${stats.totalPossibleDays * 3} possible attendances`;
 }
 
 function updateIndividualStats(stats) {
   const individualContainer = document.getElementById('individualStats');
-  if (!individualContainer) return;
-  
   individualContainer.innerHTML = '';
 
   stats.names.forEach(name => {
@@ -321,8 +221,8 @@ function updateIndividualStats(stats) {
     // Calculate attendance percentage
     const attendanceRate = stats.totalPossibleDays > 0 ? Math.round((stat.total / stats.totalPossibleDays) * 100) : 0;
     
-    // Since we're not validating time, lateness is always 0
-    const avgLateness = 0;
+    // Calculate average lateness
+    const avgLateness = stat.total > 0 ? Math.round(stat.totalLateness / stat.total) : 0;
     
     const personDiv = document.createElement('div');
     personDiv.className = 'person-stat';
