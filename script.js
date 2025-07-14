@@ -4,6 +4,9 @@ const meetUrl = "https://meet.google.com/zkg-ykkf-yjb";
 const MEETING_TIME = 20; // 8 PM in 24-hour format
 const FIXED_SHEET_URL = "https://script.google.com/macros/s/AKfycbxxbsUEPq45T9opJUr8MPoSRlMeOr2Mf1xWyuguVfdsvzjcoynx2fwyf0j90s1avCzoJg/exec";
 
+// Set this to your timezone offset from UTC (e.g., +6 for Bangladesh)
+const TIMEZONE_OFFSET_HOURS = 6; // Adjust this for your timezone
+
 let attendanceData = [];
 
 function submitAttendance(name) {
@@ -169,9 +172,15 @@ function filterFirstDailyEntries(data) {
   
   data.forEach(entry => {
     const dateKey = `${entry.dateString}-${entry.name}`;
-    const hour = entry.timestamp.getHours();
     
-    // Only consider entries after 8 PM
+    // Convert UTC to local time by adding timezone offset
+    const localTime = new Date(entry.timestamp.getTime() + (TIMEZONE_OFFSET_HOURS * 60 * 60 * 1000));
+    const hour = localTime.getHours();
+    
+    // DEBUG: Log the hour for debugging
+    console.log(`Entry: ${entry.name}, UTC: ${entry.timestamp.toISOString()}, Local: ${localTime.toLocaleString()}, Hour: ${hour}`);
+    
+    // Only consider entries after 8 PM local time
     if (hour >= MEETING_TIME) {
       if (!dailyEntries[dateKey] || entry.timestamp < dailyEntries[dateKey].timestamp) {
         dailyEntries[dateKey] = entry;
@@ -179,14 +188,21 @@ function filterFirstDailyEntries(data) {
     }
   });
   
+  console.log('Daily entries found:', Object.keys(dailyEntries).length);
   return Object.values(dailyEntries);
 }
 
 function calculateLateness(timestamp) {
-  const meetingTime = new Date(timestamp);
+  // Convert to local time for meeting time calculation
+  const localTime = new Date(timestamp.getTime() + (TIMEZONE_OFFSET_HOURS * 60 * 60 * 1000));
+  const meetingTime = new Date(localTime);
   meetingTime.setHours(MEETING_TIME, 0, 0, 0);
   
-  const diffMs = timestamp - meetingTime;
+  const diffMs = localTime - meetingTime;
+  
+  // DEBUG: Log lateness calculation
+  console.log(`Meeting time: ${meetingTime.toLocaleString()}, Actual local time: ${localTime.toLocaleString()}, Diff: ${diffMs}ms`);
+  
   return Math.max(0, Math.floor(diffMs / 60000)); // Minutes late
 }
 
