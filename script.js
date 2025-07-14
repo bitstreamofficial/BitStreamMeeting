@@ -2,7 +2,7 @@ const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSfyGhJGumcv6m02hubVnGN
 const entryId = "entry.1187304268";
 const meetUrl = "https://meet.google.com/zkg-ykkf-yjb";
 const MEETING_TIME = 20; // 8 PM in 24-hour format
-const FIXED_SHEET_URL = "https://script.google.com/macros/s/AKfycbyaT9ANqQFUg0-8uaNowBOts-eyzIl1saZ9OmY_yjeVXD76HWw2x4HcSSRXZo-01Y35lQ/exec";
+const FIXED_SHEET_URL = "https://script.google.com/macros/s/AKfycbzoG9BwiLfduy75RrOaOgRR0Rg2TPQAsh4gCmT7yIH7ntzamnOlnE2acPUQxKubKFhO2w/exec";
 
 let attendanceData = [];
 
