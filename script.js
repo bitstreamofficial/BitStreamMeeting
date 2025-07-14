@@ -2,7 +2,7 @@ const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSfyGhJGumcv6m02hubVnGN
 const entryId = "entry.1187304268";
 const meetUrl = "https://meet.google.com/zkg-ykkf-yjb";
 const MEETING_TIME = 20; // 8 PM in 24-hour format
-const FIXED_SHEET_URL = "https://script.google.com/macros/s/AKfycbzoG9BwiLfduy75RrOaOgRR0Rg2TPQAsh4gCmT7yIH7ntzamnOlnE2acPUQxKubKFhO2w/exec";
+const FIXED_SHEET_URL = "https://script.google.com/macros/s/AKfycbxxbsUEPq45T9opJUr8MPoSRlMeOr2Mf1xWyuguVfdsvzjcoynx2fwyf0j90s1avCzoJg/exec";
 
 let attendanceData = [];
 
@@ -52,8 +52,15 @@ function fetchDataFromSheet(url) {
       }
       return response.text();
     })
-    .then(csvText => {
-      parseCSVData(csvText);
+    .then(responseText => {
+      // Try to parse as JSON first, then fall back to CSV
+      try {
+        const jsonData = JSON.parse(responseText);
+        parseJSONData(jsonData);
+      } catch (e) {
+        // If JSON parsing fails, try CSV parsing
+        parseCSVData(responseText);
+      }
       updateDashboard();
       updateLastUpdated();
       updateLoadingState(false);
@@ -73,6 +80,35 @@ function updateLastUpdated() {
   const timeString = now.toLocaleTimeString();
   document.getElementById('lastUpdated').textContent = 
     `Last updated: ${timeString}`;
+}
+
+function parseJSONData(jsonData) {
+  const data = [];
+  
+  jsonData.forEach(entry => {
+    try {
+      // Handle both uppercase and lowercase property names
+      const timestamp = entry.Timestamp || entry.timestamp;
+      const name = entry.Name || entry.name;
+      
+      if (timestamp && name) {
+        const date = new Date(timestamp);
+        if (!isNaN(date.getTime())) {
+          data.push({
+            timestamp: date,
+            name: normalizeNameForComparison(name),
+            dateString: date.toDateString()
+          });
+        }
+      }
+    } catch (e) {
+      console.error('Error parsing JSON entry:', entry, e);
+    }
+  });
+  
+  // Filter to only first entry per person per day after 8 PM
+  attendanceData = filterFirstDailyEntries(data);
+  console.log('Processed attendance data:', attendanceData.length, 'entries');
 }
 
 function parseCSVData(csvText) {
@@ -96,7 +132,7 @@ function parseCSVData(csvText) {
         if (!isNaN(date.getTime())) {
           data.push({
             timestamp: date,
-            name: name,
+            name: normalizeNameForComparison(name),
             dateString: date.toDateString()
           });
         }
@@ -109,6 +145,23 @@ function parseCSVData(csvText) {
   // Filter to only first entry per person per day after 8 PM
   attendanceData = filterFirstDailyEntries(data);
   console.log('Processed attendance data:', attendanceData.length, 'entries');
+}
+
+function normalizeNameForComparison(name) {
+  // Convert to lowercase and trim for comparison
+  const normalized = name.toLowerCase().trim();
+  
+  // Map variations to standard names
+  const nameMap = {
+    'rafi': 'Rafi',
+    'rafii': 'Rafi',
+    'shakib': 'Shakib',
+    'sabbir': 'Sabbir',
+    'aisha': 'Aisha',
+    'imran': 'Imran'
+  };
+  
+  return nameMap[normalized] || name; // Return mapped name or original if not found
 }
 
 function filterFirstDailyEntries(data) {
@@ -159,7 +212,8 @@ function updateDashboard() {
 }
 
 function calculateStats(monthData) {
-  const names = ['Rafi', 'Shakib', 'Sabbir'];
+  // Get all unique names from the data instead of hardcoding
+  const allNames = [...new Set(attendanceData.map(entry => entry.name))];
   
   // Calculate monthly stats
   const monthlyStats = {};
@@ -176,13 +230,13 @@ function calculateStats(monthData) {
   // Overall attendance
   const totalPossibleDays = getWorkingDaysThisMonth();
   const totalAttendance = Object.values(monthlyStats).reduce((sum, s) => sum + s.total, 0);
-  const overallAttendance = totalPossibleDays > 0 ? Math.round((totalAttendance / (totalPossibleDays * names.length)) * 100) : 0;
+  const overallAttendance = totalPossibleDays > 0 ? Math.round((totalAttendance / (totalPossibleDays * allNames.length)) * 100) : 0;
 
   return {
     overallAttendance,
     monthlyStats,
     totalPossibleDays,
-    names
+    names: allNames
   };
 }
 
@@ -206,13 +260,24 @@ function getWorkingDaysThisMonth() {
 function updateStatsCards(stats) {
   // Overall Attendance
   document.getElementById('overallAttendance').textContent = stats.overallAttendance + '%';
-  document.getElementById('attendanceProgress').style.width = stats.overallAttendance + '%';
-  document.getElementById('attendanceDetail').textContent = 
-    `${Object.values(stats.monthlyStats).reduce((sum, s) => sum + s.total, 0)} / ${stats.totalPossibleDays * 3} possible attendances`;
+  
+  // Check if progress bar element exists before updating
+  const progressBar = document.getElementById('attendanceProgress');
+  if (progressBar) {
+    progressBar.style.width = stats.overallAttendance + '%';
+  }
+  
+  const attendanceDetail = document.getElementById('attendanceDetail');
+  if (attendanceDetail) {
+    attendanceDetail.textContent = 
+      `${Object.values(stats.monthlyStats).reduce((sum, s) => sum + s.total, 0)} / ${stats.totalPossibleDays * stats.names.length} possible attendances`;
+  }
 }
 
 function updateIndividualStats(stats) {
   const individualContainer = document.getElementById('individualStats');
+  if (!individualContainer) return;
+  
   individualContainer.innerHTML = '';
 
   stats.names.forEach(name => {
