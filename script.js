@@ -1,7 +1,7 @@
 const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSfyGhJGumcv6m02hubVnGNmUz_eRnmKq8EdhhkySI8AgTSm-A/formResponse";
 const entryId = "entry.1187304268";
 const meetUrl = "https://meet.google.com/zkg-ykkf-yjb";
-const FIXED_SHEET_URL = "https://script.google.com/macros/s/AKfycbxxbsUEPq45T9opJUr8MPoSRlMeOr2Mf1xWyuguVfdsvzjcoynx2fwyf0j90s1avCzoJg/exec";
+const FIXED_SHEET_URL = "https://script.google.com/macros/s/AKfycbzsFQf-KPgE_VZXGB2LDrpgB408CPYjis7x1xRYtPGpQFZbpCOnc1aMkIHotQGLEHXoYQ/exec";
 
 // Set this to your timezone offset from UTC (e.g., +6 for Bangladesh)
 const TIMEZONE_OFFSET_HOURS = 6; // Adjust this for your timezone
