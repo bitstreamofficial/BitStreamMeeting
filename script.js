@@ -1,233 +1,276 @@
-// Updated JavaScript code for the new Google Form
-const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSf3-srZzj36iu4c42Mbhc7gpX2N4AiYliuqIUUlSArD-KHIDQ/formResponse";
-const entryId = "entry.1163406004"; // Updated entry ID for the new form
-const meetUrl = "https://meet.google.com/zkg-ykkf-yjb";
-const MEETING_TIME = 20; // 8 PM in 24-hour format
-const FIXED_SHEET_URL = "https://script.google.com/macros/s/AKfycbzbKsbCnuIbKIcT47i9KHEXzhgQrhlUPyIjuU21BmQXhrNqxg9vsBPMFdfrL6q2vHckUg/exec"; // Replace with your deployed web app URL
 
-let attendanceData = [];
 
-function submitAttendance(name) {
-  const prefillUrl = `https://docs.google.com/forms/d/e/1FAIpQLSf3-srZzj36iu4c42Mbhc7gpX2N4AiYliuqIUUlSArD-KHIDQ/viewform?usp=pp_url&entry.1163406004=${encodeURIComponent(name)}&submit=Submit`;
-  
-  const iframe = document.createElement('iframe');
-  iframe.style.display = 'none';
-  iframe.src = prefillUrl;
-  document.body.appendChild(iframe);
-  
-  setTimeout(() => {
-    document.body.removeChild(iframe);
-    window.location.href = meetUrl;
-  }, 1500);
-}
-
-function loadData() {
-  fetchDataFromSheet(FIXED_SHEET_URL);
-}
-
-function fetchDataFromSheet(url) {
-  updateLoadingState(true);
-  
-  fetch(url)
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Network response was not ok');
-      }
-      return response.text();
-    })
-    .then(csvText => {
-      parseCSVData(csvText);
-      updateDashboard();
-      updateLastUpdated();
-      updateLoadingState(false);
-    })
-    .catch(error => {
-      console.error('Error loading data:', error);
-      updateLoadingState(false);
-    });
-}
-
-function updateLoadingState(loading) {
-  document.getElementById('overallAttendance').textContent = loading ? 'Loading...' : '--';
-}
-
-function updateLastUpdated() {
-  const now = new Date();
-  const timeString = now.toLocaleTimeString();
-  document.getElementById('lastUpdated').textContent = 
-    `Last updated: ${timeString}`;
-}
-
-function parseCSVData(csvText) {
-  const lines = csvText.split('\n');
-  const data = [];
-  
-  // Skip header row
-  for (let i = 1; i < lines.length; i++) {
-    const line = lines[i].trim();
-    if (!line) continue;
-    
-    // Handle both comma and tab separators
-    const parts = line.includes('\t') ? line.split('\t') : line.split(',');
-    
-    if (parts.length >= 2) {
-      const timestamp = parts[0].trim();
-      const name = parts[1].trim();
-      
-      try {
-        const date = new Date(timestamp);
-        if (!isNaN(date.getTime())) {
-          data.push({
-            timestamp: date,
-            name: name,
-            dateString: date.toDateString()
-          });
-        }
-      } catch (e) {
-        console.error('Error parsing date:', timestamp);
-      }
-    }
-  }
-  
-  // Data is already sorted by date (newest first) from the Apps Script
-  // Filter to only first entry per person per day after 8 PM
-  attendanceData = filterFirstDailyEntries(data);
-  console.log('Processed attendance data:', attendanceData.length, 'entries');
-}
-
-function filterFirstDailyEntries(data) {
-  const dailyEntries = {};
-  
-  data.forEach(entry => {
-    const dateKey = `${entry.dateString}-${entry.name}`;
-    const hour = entry.timestamp.getHours();
-    
-    // Only consider entries after 8 PM
-    if (hour >= MEETING_TIME) {
-      if (!dailyEntries[dateKey] || entry.timestamp < dailyEntries[dateKey].timestamp) {
-        dailyEntries[dateKey] = entry;
-      }
-    }
-  });
-  
-  return Object.values(dailyEntries);
-}
-
-function calculateLateness(timestamp) {
-  const meetingTime = new Date(timestamp);
-  meetingTime.setHours(MEETING_TIME, 0, 0, 0);
-  
-  const diffMs = timestamp - meetingTime;
-  return Math.max(0, Math.floor(diffMs / 60000)); // Minutes late
-}
-
-function updateDashboard() {
-  if (attendanceData.length === 0) {
-    document.getElementById('overallAttendance').textContent = 'No Data';
-    document.getElementById('individualStats').innerHTML = '<div class="no-data">No data available</div>';
-    return;
-  }
-
-  const now = new Date();
-  const thisMonth = attendanceData.filter(entry => 
-    entry.timestamp.getMonth() === now.getMonth() && 
-    entry.timestamp.getFullYear() === now.getFullYear()
-  );
-
-  // Calculate statistics
-  const stats = calculateStats(thisMonth);
-  
-  // Update UI
-  updateStatsCards(stats);
-  updateIndividualStats(stats);
-}
-
-function calculateStats(monthData) {
-  const names = ['Rafi', 'Shakib', 'Sabbir'];
-  
-  // Calculate monthly stats
-  const monthlyStats = {};
-  monthData.forEach(entry => {
-    const lateness = calculateLateness(entry.timestamp);
-    if (!monthlyStats[entry.name]) {
-      monthlyStats[entry.name] = { total: 0, totalLateness: 0, lateCount: 0 };
-    }
-    monthlyStats[entry.name].total++;
-    monthlyStats[entry.name].totalLateness += lateness;
-    if (lateness > 0) monthlyStats[entry.name].lateCount++;
-  });
-
-  // Overall attendance
-  const totalPossibleDays = getWorkingDaysThisMonth();
-  const totalAttendance = Object.values(monthlyStats).reduce((sum, s) => sum + s.total, 0);
-  const overallAttendance = totalPossibleDays > 0 ? Math.round((totalAttendance / (totalPossibleDays * names.length)) * 100) : 0;
-
-  return {
-    overallAttendance,
-    monthlyStats,
-    totalPossibleDays,
-    names
+// Your Firebase config - Replace with your actual config
+const firebaseConfig = {
+    apiKey: "AIzaSyAucu5GXH6DGK27Kvcmx0be10MSqOmQszY",
+    authDomain: "bsms-13dde.firebaseapp.com",
+    projectId: "bsms-13dde",
+    storageBucket: "bsms-13dde.firebasestorage.app",
+    messagingSenderId: "833706206633",
+    appId: "1:833706206633:web:d312245ad65a90430590b8",
+    measurementId: "G-KCF3S1HDP4"
   };
-}
 
-function getWorkingDaysThisMonth() {
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+const database = firebase.database();
+
+// Utility functions
+function getBDTime() {
   const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const today = now.getDate();
+  const bdTime = new Date(now.toLocaleString("en-US", {timeZone: "Asia/Dhaka"}));
+  return bdTime;
+}
+
+function formatTime(date) {
+  return date.toLocaleTimeString('en-US', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: true
+  });
+}
+
+function formatDate(date) {
+  return date.toISOString().split('T')[0]; // YYYY-MM-DD format
+}
+
+function calculateLateness(joinTime, meetingTime) {
+  const diffMs = joinTime - meetingTime;
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
   
-  let workingDays = 0;
-  for (let day = 1; day <= today; day++) {
-    const date = new Date(year, month, day);
-    const dayOfWeek = date.getDay();
-    if (dayOfWeek !== 0 && dayOfWeek !== 6) { // Not Sunday or Saturday
-      workingDays++;
-    }
+  if (diffMinutes <= 0) {
+    return "On time";
+  } else if (diffMinutes < 60) {
+    return `${diffMinutes} minutes late`;
+  } else {
+    const hours = Math.floor(diffMinutes / 60);
+    const minutes = diffMinutes % 60;
+    return `${hours}h ${minutes}m late`;
   }
-  return workingDays;
 }
 
-function updateStatsCards(stats) {
-  // Overall Attendance
-  document.getElementById('overallAttendance').textContent = stats.overallAttendance + '%';
-  document.getElementById('attendanceProgress').style.width = stats.overallAttendance + '%';
-  document.getElementById('attendanceDetail').textContent = 
-    `${Object.values(stats.monthlyStats).reduce((sum, s) => sum + s.total, 0)} / ${stats.totalPossibleDays * 3} possible attendances`;
+// Main attendance submission function
+async function submitAttendance(name) {
+  const loadingElement = document.getElementById('loading');
+  const currentTime = getBDTime();
+  const currentDate = formatDate(currentTime);
+  const currentHour = currentTime.getHours();
+  const currentMinute = currentTime.getMinutes();
+  
+  // Check time restrictions
+  const currentTimeInMinutes = currentHour * 60 + currentMinute;
+  const meetingStartTime = 20 * 60; // 8:00 PM in minutes
+  const joinWindowStart = 19 * 60 + 55; // 7:55 PM in minutes
+  const joinWindowEnd = 21 * 60; // 9:00 PM in minutes
+  
+  // Show loading
+  loadingElement.style.display = 'block';
+  
+  try {
+    // Check if it's outside the allowed time window
+    if (currentTimeInMinutes < joinWindowStart || currentTimeInMinutes > joinWindowEnd) {
+      loadingElement.style.display = 'none';
+      alert('Meeting is at 8:00 PM BD time. You can join between 7:55 PM and 9:00 PM only.');
+      return;
+    }
+    
+    // Check if user already joined today
+    const userRef = database.ref(`attendance/${name}/${currentDate}`);
+    const snapshot = await userRef.once('value');
+    
+    if (snapshot.exists()) {
+      loadingElement.style.display = 'none';
+      alert(`${name} has already joined today at ${formatTime(new Date(snapshot.val().joinTime))}`);
+      return;
+    }
+    
+    // Create meeting time for today
+    const meetingTime = new Date(currentTime);
+    meetingTime.setHours(20, 0, 0, 0); // 8:00 PM BD time
+    
+    // Calculate lateness
+    const lateness = calculateLateness(currentTime, meetingTime);
+    
+    // Store attendance data
+    const attendanceData = {
+      name: name,
+      joinTime: currentTime.toISOString(),
+      meetingTime: meetingTime.toISOString(),
+      date: currentDate,
+      lateness: lateness,
+      timestamp: firebase.database.ServerValue.TIMESTAMP
+    };
+    
+    await userRef.set(attendanceData);
+    
+    // Hide loading and show success
+    loadingElement.style.display = 'none';
+    
+    // Show success message and redirect immediately
+    const userConfirmed = confirm(`${name} successfully joined the meeting!\nJoin time: ${formatTime(currentTime)}\nStatus: ${lateness}\n\nClick OK to join the Google Meet now.`);
+    
+    // Refresh analytics
+    loadAnalytics();
+    
+    // Redirect to Google Meet
+    if (userConfirmed) {
+      window.open('https://meet.google.com/zkg-ykkf-yjb', '_blank');
+    } else {
+      // If user cancels, still give them option to join later
+      setTimeout(() => {
+        const joinNow = confirm('Would you like to join the Google Meet now?');
+        if (joinNow) {
+          window.open('https://meet.google.com/zkg-ykkf-yjb', '_blank');
+        }
+      }, 2000);
+    }
+    
+  } catch (error) {
+    console.error('Error submitting attendance:', error);
+    loadingElement.style.display = 'none';
+    alert('Error submitting attendance. Please try again.');
+  }
 }
 
-function updateIndividualStats(stats) {
-  const individualContainer = document.getElementById('individualStats');
-  individualContainer.innerHTML = '';
+// Load analytics data - simplified for individual performance only
+async function loadAnalytics() {
+  const currentDate = formatDate(getBDTime());
+  
+  try {
+    // Get all attendance data
+    const attendanceRef = database.ref('attendance');
+    const snapshot = await attendanceRef.once('value');
+    
+    if (!snapshot.exists()) {
+      updateAnalyticsDisplay([], []);
+      return;
+    }
+    
+    const allData = snapshot.val();
+    const todayData = [];
+    const allTimeData = [];
+    
+    // Process data for today and all time
+    Object.keys(allData).forEach(userName => {
+      Object.keys(allData[userName]).forEach(date => {
+        const record = allData[userName][date];
+        
+        // Add to all time data
+        allTimeData.push(record);
+        
+        // Add to today's data if it's today
+        if (date === currentDate) {
+          todayData.push(record);
+        }
+      });
+    });
+    
+    updateAnalyticsDisplay(todayData, allTimeData);
+    
+  } catch (error) {
+    console.error('Error loading analytics:', error);
+  }
+}
 
-  stats.names.forEach(name => {
-    const stat = stats.monthlyStats[name] || { total: 0, totalLateness: 0, lateCount: 0 };
-    
-    // Calculate attendance percentage
-    const attendanceRate = stats.totalPossibleDays > 0 ? Math.round((stat.total / stats.totalPossibleDays) * 100) : 0;
-    
-    // Calculate average lateness
-    const avgLateness = stat.total > 0 ? Math.round(stat.totalLateness / stat.total) : 0;
-    
-    const personDiv = document.createElement('div');
-    personDiv.className = 'person-stat';
-    
-    personDiv.innerHTML = `
-      <div class="person-name">${name}</div>
-      <div class="person-stats-details">
-        <div class="person-attendance">Attendance: ${attendanceRate}%</div>
-        <div class="person-lateness">Avg Late: ${avgLateness} min</div>
+// Update analytics display - simplified for individual performance only
+function updateAnalyticsDisplay(todayData, allTimeData) {
+  // Calculate individual stats for each person
+  const individualStats = {};
+  
+  // Initialize stats for each team member
+  ['Rafi', 'Shakib', 'Sabbir'].forEach(name => {
+    individualStats[name] = {
+      totalJoins: 0,
+      onTimeCount: 0,
+      lateCount: 0,
+      averageLateness: 0,
+      todayStatus: 'Not joined today',
+      todayTime: null
+    };
+  });
+  
+  // Process all time data
+  allTimeData.forEach(record => {
+    const name = record.name;
+    if (individualStats[name]) {
+      individualStats[name].totalJoins++;
+      
+      if (record.lateness === 'On time') {
+        individualStats[name].onTimeCount++;
+      } else {
+        individualStats[name].lateCount++;
+      }
+    }
+  });
+  
+  // Process today's data
+  todayData.forEach(record => {
+    const name = record.name;
+    if (individualStats[name]) {
+      individualStats[name].todayStatus = record.lateness;
+      individualStats[name].todayTime = formatTime(new Date(record.joinTime));
+    }
+  });
+  
+  // Calculate averages
+  Object.keys(individualStats).forEach(name => {
+    const stats = individualStats[name];
+    if (stats.totalJoins > 0) {
+      const onTimeRate = Math.round((stats.onTimeCount / stats.totalJoins) * 100);
+      stats.averageLateness = `${onTimeRate}% on time`;
+    } else {
+      stats.averageLateness = 'No data';
+    }
+  });
+  
+  // Update overall attendance (simple average of all team members)
+  const totalOnTime = Object.values(individualStats).reduce((sum, stats) => sum + stats.onTimeCount, 0);
+  const totalJoins = Object.values(individualStats).reduce((sum, stats) => sum + stats.totalJoins, 0);
+  const overallRate = totalJoins > 0 ? Math.round((totalOnTime / totalJoins) * 100) : 0;
+  
+  document.getElementById('overallAttendance').textContent = `${overallRate}%`;
+  document.getElementById('attendanceProgress').style.width = `${overallRate}%`;
+  document.getElementById('attendanceDetail').textContent = `${totalJoins} total joins recorded`;
+  
+  // Update individual stats display
+  const individualStatsElement = document.getElementById('individualStats');
+  
+  const statsHTML = Object.keys(individualStats).map(name => {
+    const stats = individualStats[name];
+    return `
+      <div class="person-stat">
+        <div class="person-info">
+          <div class="person-name">${name}</div>
+          <div class="person-overall">Overall: ${stats.averageLateness}</div>
+        </div>
+        <div class="person-today">
+          <div class="person-time">${stats.todayTime ? `Today: ${stats.todayTime}` : 'Not joined today'}</div>
+          <div class="person-status ${stats.todayStatus === 'On time' ? 'on-time' : stats.todayStatus === 'Not joined today' ? 'not-joined' : 'late'}">${stats.todayStatus}</div>
+        </div>
       </div>
     `;
-    
-    individualContainer.appendChild(personDiv);
-  });
+  }).join('');
+  
+  individualStatsElement.innerHTML = statsHTML;
+  
+  // Update last updated time
+  document.getElementById('lastUpdated').textContent = `Last updated: ${formatTime(getBDTime())}`;
 }
 
-// Initialize dashboard on page load
+// Initialize analytics on page load
 document.addEventListener('DOMContentLoaded', function() {
-  // Load data automatically when page loads
-  loadData();
+  loadAnalytics();
   
-  // Update dashboard initially
-  updateDashboard();
+  // Set up real-time updates
+  const attendanceRef = database.ref('attendance');
+  attendanceRef.on('value', (snapshot) => {
+    loadAnalytics();
+  });
+  
+  // Auto-refresh every minute
+  setInterval(loadAnalytics, 60000);
 });
+
+// Make function globally available
+window.submitAttendance = submitAttendance;
