@@ -5,13 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Bitstream - Team Dashboard</title>
   <link rel="stylesheet" href="style.css">
+  
+  <!-- Firebase v8 SDK -->
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 </head>
 <body>
   <div class="dashboard">
     <div class="header">
       <div class="logo">Bitstream</div>
       <div class="subtitle">Team Dashboard & Meeting Access</div>
-      
+             
       <div class="button-container">
         <button class="join-button" onclick="submitAttendance('Rafi')">
           Join as Rafi
@@ -23,15 +27,15 @@
           Join as Sabbir
         </button>
       </div>
-
+       
       <div class="loading" id="loading">
         Submitting attendance and joining meeting...
       </div>
     </div>
-
+     
     <div class="analytics-section">
       <div class="section-title">Team Analytics</div>
-      
+             
       <div class="stats-grid">
         <div class="stat-card">
           <h3>📊 Overall Attendance</h3>
@@ -43,7 +47,7 @@
           <div class="stat-detail" id="attendanceDetail">Loading...</div>
         </div>
       </div>
-
+       
       <div class="team-overview">
         <div class="overview-card">
           <h3>👥 Individual Performance</h3>
@@ -53,10 +57,10 @@
         </div>
       </div>
     </div>
-
+     
     <div class="last-updated" id="lastUpdated"></div>
   </div>
-
+   
   <script src="script.js"></script>
 </body>
 </html>
