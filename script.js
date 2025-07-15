@@ -8,34 +8,17 @@ const FIXED_SHEET_URL = "https://script.google.com/macros/s/AKfycbzbKsbCnuIbKIcT
 let attendanceData = [];
 
 function submitAttendance(name) {
-  const button = event.target;
-  const loading = document.getElementById('loading');
+  const prefillUrl = `https://docs.google.com/forms/d/e/1FAIpQLSf3-srZzj36iu4c42Mbhc7gpX2N4AiYliuqIUUlSArD-KHIDQ/viewform?usp=pp_url&entry.1163406004=${encodeURIComponent(name)}&submit=Submit`;
   
-  const buttons = document.querySelectorAll('.join-button');
-  buttons.forEach(btn => {
-    btn.disabled = true;
-    btn.style.opacity = '0.6';
-    btn.style.cursor = 'not-allowed';
-  });
+  const iframe = document.createElement('iframe');
+  iframe.style.display = 'none';
+  iframe.src = prefillUrl;
+  document.body.appendChild(iframe);
   
-  loading.classList.add('show');
-  
-  const data = new FormData();
-  data.append(entryId, name);
-
-  fetch(formUrl, {
-    method: "POST",
-    mode: "no-cors",
-    body: data
-  }).then(() => {
-    setTimeout(() => {
-      window.location.href = meetUrl;
-    }, 500);
-  }).catch(() => {
-    setTimeout(() => {
-      window.location.href = meetUrl;
-    }, 500);
-  });
+  setTimeout(() => {
+    document.body.removeChild(iframe);
+    window.location.href = meetUrl;
+  }, 1500);
 }
 
 function loadData() {
