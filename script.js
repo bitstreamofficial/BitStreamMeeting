@@ -1,8 +1,9 @@
-const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSfyGhJGumcv6m02hubVnGNmUz_eRnmKq8EdhhkySI8AgTSm-A/formResponse";
-const entryId = "entry.1187304268";
+// Updated JavaScript code for the new Google Form
+const formUrl = "https://docs.google.com/forms/d/e/1FAIpQLSf3-srZzj36iu4c42Mbhc7gpX2N4AiYliuqIUUlSArD-KHIDQ/formResponse";
+const entryId = "entry.1163406004"; // Updated entry ID for the new form
 const meetUrl = "https://meet.google.com/zkg-ykkf-yjb";
-const MEETING_TIME = 1; // 8 PM in 24-hour format
-const FIXED_SHEET_URL = "https://script.google.com/macros/s/AKfycbxx-0dvUdqYBlsSMsX-V1qfLd-ZvAp9DfWm8HBo4RRM5C1iO5ClYh8IpHHyMGUy-i_HsA/exec";
+const MEETING_TIME = 20; // 8 PM in 24-hour format
+const FIXED_SHEET_URL = "https://script.google.com/macros/s/AKfycbzbKsbCnuIbKIcT47i9KHEXzhgQrhlUPyIjuU21BmQXhrNqxg9vsBPMFdfrL6q2vHckUg/exec"; // Replace with your deployed web app URL
 
 let attendanceData = [];
 
@@ -42,7 +43,6 @@ function loadData() {
 }
 
 function fetchDataFromSheet(url) {
-  // Show loading state
   updateLoadingState(true);
   
   fetch(url)
@@ -106,6 +106,7 @@ function parseCSVData(csvText) {
     }
   }
   
+  // Data is already sorted by date (newest first) from the Apps Script
   // Filter to only first entry per person per day after 8 PM
   attendanceData = filterFirstDailyEntries(data);
   console.log('Processed attendance data:', attendanceData.length, 'entries');
